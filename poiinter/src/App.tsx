@@ -12,6 +12,7 @@ import "./App.css";
 import { IDataCase } from "./Types";
 
 function App() {
+  console.log("👉 V0.1.0");
   const p5_container = useRef<HTMLDivElement>();
 
   const [isRecording, setIsRecording] = useState(false);
@@ -48,6 +49,7 @@ function App() {
           pose_detector = detector;
         });
 
+        // tensorflowjs_converter --input_format keras ./20230107-2204_model.h5 ./
         loadModel("./models/model.json").then((loadedModel) => {
           model = loadedModel;
         });
@@ -104,7 +106,6 @@ function App() {
                   const prediction = model.predict(input);
                   //@ts-ignore
                   let predictionXY = prediction.dataSync();
-                  p.circle(0, 0, circleSize);
                   p.circle(predictionXY[0], predictionXY[1], circleSize);
                   predictionArray = [];
                 }
