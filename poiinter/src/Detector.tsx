@@ -1,5 +1,6 @@
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
+import * as tf from "@tensorflow/tfjs";
 
 export async function setupDetector() {
   // Setup Detection Model
@@ -29,4 +30,9 @@ export async function detectPose(
   const poses = await detector.estimatePoses(video);
   // do something with the poses
   return poses;
+}
+
+export async function loadModel(path: string) {
+  const model: tf.LayersModel = await tf.loadLayersModel(path);
+  return model;
 }

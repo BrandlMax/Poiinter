@@ -1,8 +1,9 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import "@tensorflow/tfjs-backend-webgl";
+import * as tf from "@tensorflow/tfjs";
 import p5 from "p5";
-import { detectPose, setupDetector } from "./Detector";
+import { detectPose, loadModel, setupDetector } from "./Detector";
 import { drawGrid } from "./Elements";
 import { Box, Button } from "@chakra-ui/react";
 import { CSVLink } from "react-csv";
@@ -21,6 +22,7 @@ function App() {
   const id = useId();
 
   useEffect(() => {
+    console.log("UPDATED");
     const sketch = (p: p5) => {
       let video: p5.Element;
       let framerate = 30;
@@ -33,6 +35,8 @@ function App() {
       let stepX: number;
       let stepY: number;
 
+      let model: tf.LayersModel;
+
       p.setup = () => {
         p.frameRate(framerate);
         p.createCanvas(1920, 1080);
@@ -42,6 +46,10 @@ function App() {
 
         setupDetector().then((detector) => {
           pose_detector = detector;
+        });
+
+        loadModel("./models/model.json").then((loadedModel) => {
+          model = loadedModel;
         });
 
         // Setup random movement
@@ -58,12 +66,14 @@ function App() {
       };
 
       if (isModelMode) {
+        // MODEL MODE
         p.draw = () => {
           // DELAY FOR ERROR FIX
           if (p.frameCount > 20) {
             p.background(0);
             p.image(video, 0, 0, 640, 480);
 
+            let predictionArray: number[] = [];
             // Detect
             if (pose_detector !== undefined) {
               detectPose(video.elt, pose_detector).then((poses) => {
@@ -71,6 +81,8 @@ function App() {
                 poses.forEach((pose) => {
                   // For each keypoint in the pose
                   pose.keypoints.forEach((keypoint) => {
+                    predictionArray.push(keypoint.x);
+                    predictionArray.push(keypoint.y);
                     // If the keypoint has a high enough score, draw it
                     if (keypoint.score && keypoint.score > 0.2) {
                       p.fill(255, 0, 0);
@@ -79,21 +91,24 @@ function App() {
                     }
                   });
                 });
-              });
-            }
 
-            drawGrid(p);
-            // CIRCLE MOVEMENT
-            p.noStroke();
-            p.fill(255, 255, 255);
-            p.circle(x, y, circleSize);
-            // Update the position of the circle
-            x += stepX;
-            y += stepY;
-            // If the circle is outside the bounds of the canvas, reverse its direction
-            if (x < 0 || x > p.width || y < 0 || y > p.height) {
-              stepX = -stepX;
-              stepY = -stepY;
+                drawGrid(p);
+                // CIRCLE MOVEMENT
+                p.noStroke();
+                p.fill(255, 255, 255);
+
+                if (predictionArray.slice(0, 22).length !== 0) {
+                  let input = tf.tensor1d(predictionArray.slice(0, 22));
+                  // @ts-ignore
+                  input = tf.reshape(input, [1, 22]);
+                  const prediction = model.predict(input);
+                  //@ts-ignore
+                  let predictionXY = prediction.dataSync();
+                  p.circle(0, 0, circleSize);
+                  p.circle(predictionXY[0], predictionXY[1], circleSize);
+                  predictionArray = [];
+                }
+              });
             }
           }
         };
