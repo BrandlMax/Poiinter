@@ -29,12 +29,10 @@ function App() {
       let framerate = 30;
       let pose_detector: poseDetection.PoseDetector;
 
-      let circleSize = 75;
-      let speed = 10;
-      let x: number;
-      let y: number;
-      let stepX: number;
-      let stepY: number;
+      let circleSize = 80;
+      let x = 0;
+      let y = 0;
+      let xSpeed = circleSize / 10;
 
       let model: tf.LayersModel;
 
@@ -54,17 +52,10 @@ function App() {
           model = loadedModel;
         });
 
-        // Setup random movement
-        x = p.random(p.width);
-        y = p.random(p.height);
-        // Set the initial direction of the circle to a random value
-        stepX = p.random(-1 * speed, speed);
-        stepY = p.random(-1 * speed, speed);
-        // Change the direction of the circle every 5 seconds
-        setInterval(() => {
-          stepX = p.random(-1 * speed, speed);
-          stepY = p.random(-1 * speed, speed);
-        }, 5000);
+        x = 0;
+        y = circleSize / 2 + 10;
+
+        // Update Circle
       };
 
       if (isModelMode) {
@@ -116,9 +107,35 @@ function App() {
       } else {
         p.draw = () => {
           // DELAY FOR ERROR FIX
-          if (p.frameCount > 20) {
+          if (p.frameCount > 30) {
             p.background(0);
             p.image(video, 0, 0, 640, 480);
+
+            // Move the circle
+            x += xSpeed;
+
+            // Check if the circle has reached the right edge of the display
+            if (x >= window.innerWidth) {
+              // x = 0;
+              xSpeed = xSpeed * -1;
+              y += 100;
+              // Check if the circle has reached the bottom edge of the display
+              if (y + circleSize >= window.innerHeight) {
+                y = circleSize / 2 + 10;
+              }
+            }
+
+            // Check if the circle has reached the left edge of the display
+            if (x <= 0) {
+              // x = 0;
+              xSpeed = xSpeed * -1;
+              y += 100;
+              // Check if the circle has reached the bottom edge of the display
+              if (y + circleSize >= window.innerHeight) {
+                y = circleSize / 2 + 10;
+                x = 0;
+              }
+            }
 
             // Detect
             if (pose_detector !== undefined) {
@@ -153,6 +170,7 @@ function App() {
                   if (isRecording) {
                     // @ts-ignore
                     sessionData.push(newDataCase);
+                    console.log(sessionData);
                     // Update the session data in the state
                     setSessionData(sessionData);
                   }
@@ -166,14 +184,6 @@ function App() {
             p.noStroke();
             p.fill(255, 0, 0);
             p.circle(x, y, circleSize);
-            // Update the position of the circle
-            x += stepX;
-            y += stepY;
-            // If the circle is outside the bounds of the canvas, reverse its direction
-            if (x < 0 || x > p.width || y < 0 || y > p.height) {
-              stepX = -stepX;
-              stepY = -stepY;
-            }
           }
         };
       }
