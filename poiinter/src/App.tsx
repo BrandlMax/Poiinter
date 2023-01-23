@@ -94,6 +94,7 @@ function App() {
                   let input = tf.tensor1d(predictionArray.slice(0, 22));
                   // @ts-ignore
                   input = tf.reshape(input, [1, 22]);
+                  // input = input.div(tf.norm(input));
                   const prediction = model.predict(input);
                   //@ts-ignore
                   let predictionXY = prediction.dataSync();
